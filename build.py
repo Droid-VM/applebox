@@ -14,6 +14,7 @@ private to its own object. A generated dispatcher links them together."""
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -89,7 +90,8 @@ def main():
         scdir = hit.parents[1]
     print('shell_cmds dir:', scdir)
 
-    target = f'arm64-apple-ios{args.deployment_target}'
+    # DROIDVM_IOS_TARGET (arm64e-apple-ios27.0 for iPadOS 27, which runs no arm64 platform binaries) wins over the default arm64 one.
+    target = os.environ.get('DROIDVM_IOS_TARGET') or f'arm64-apple-ios{args.deployment_target}'
     cc = ['xcrun', 'clang', '-target', target, '-isysroot', iphone_sdk,
           f'-I{shim}', '-O2', '-fno-common', '-Wno-everything',
           '-D__DARWIN_UNIX03=1', '-DBSD4_4']
@@ -187,7 +189,7 @@ int main(int argc, char **argv) {{
     (out / 'applebox.json').write_text(json.dumps(
         {'cdhash': cdhash, 'binary': str(binary), 'commands': built, 'aliases': ALIASES, 'identifier': args.identifier,
          'entitlements': str(args.entitlements) if args.entitlements else None,
-         'source': f'apple-oss-distributions {SHELL_CMDS_TAG}, iphoneos arm64'}, indent=2) + '\n')
+         'source': f'apple-oss-distributions {SHELL_CMDS_TAG}, iphoneos {target.split("-")[0]}'}, indent=2) + '\n')
     print('applebox CDHash', cdhash, 'size', binary.stat().st_size)
 
 
